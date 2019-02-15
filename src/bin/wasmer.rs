@@ -108,8 +108,6 @@ fn execute_wasm(options: &Run) -> Result<(), String> {
     let compile_duration = start_compile.elapsed();
     println!("compile time: {:?}", compile_duration);
 
-    let start_run = Instant::now();
-
     webassembly::start_instance(
         Arc::clone(&module),
         &mut instance,
@@ -117,14 +115,16 @@ fn execute_wasm(options: &Run) -> Result<(), String> {
         options.args.iter().map(|arg| arg.as_str()).collect(),
     )
 
-    let run_duration = start_run.elapsed();
-    println!("run time: {:?}", run_duration);
-
 }
 
 fn run(options: Run) {
+    let start_run = Instant::now();
+
     match execute_wasm(&options) {
-        Ok(()) => {}
+        Ok(()) => {
+            let run_duration = start_run.elapsed();
+            println!("total run time (compile + execute): {:?}", run_duration);
+        }
         Err(message) => {
             // let name = options.path.as_os_str().to_string_lossy();
             println!("{}", message);
