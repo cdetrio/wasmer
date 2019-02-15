@@ -7,6 +7,7 @@ use std::io::Read;
 use std::path::PathBuf;
 use std::process::exit;
 use std::sync::Arc;
+use std::time::{Duration, Instant};
 
 use structopt::StructOpt;
 
@@ -70,6 +71,9 @@ fn execute_wasm(options: &Run) -> Result<(), String> {
 
     let isa = webassembly::get_isa();
 
+    // start compilation time
+    let start_compile = Instant::now();
+
     debug!("webassembly - creating module");
     let module = webassembly::compile(&wasm_binary[..])
         .map_err(|err| format!("Can't create the WebAssembly module: {}", err))?;
@@ -100,12 +104,22 @@ fn execute_wasm(options: &Run) -> Result<(), String> {
     let mut instance = module.instantiate(&import_object)
         .map_err(|err| format!("Can't instantiate the WebAssembly module: {}", err))?;
 
+    // end compilation time
+    let compile_duration = start_compile.elapsed();
+    println!("compile time: {:?}", compile_duration);
+
+    let start_run = Instant::now();
+
     webassembly::start_instance(
         Arc::clone(&module),
         &mut instance,
         options.path.to_str().unwrap(),
         options.args.iter().map(|arg| arg.as_str()).collect(),
     )
+
+    let run_duration = start_run.elapsed();
+    println!("run time: {:?}", run_duration);
+
 }
 
 fn run(options: Run) {
