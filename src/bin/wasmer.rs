@@ -6,6 +6,7 @@ use std::io;
 use std::io::Read;
 use std::path::PathBuf;
 use std::process::exit;
+use std::time::{Duration, Instant};
 
 use structopt::StructOpt;
 
@@ -65,6 +66,9 @@ fn execute_wasm(options: &Run) -> Result<(), String> {
 
     let isa = webassembly::get_isa();
 
+    // start compilation time
+    let start_compile = Instant::now();
+
     debug!("webassembly - creating module");
     let module = webassembly::compile(wasm_binary)
         .map_err(|err| format!("Can't create the WebAssembly module: {}", err))?;
@@ -94,17 +98,27 @@ fn execute_wasm(options: &Run) -> Result<(), String> {
     let mut instance = webassembly::Instance::new(&module, import_object, instance_options)
         .map_err(|err| format!("Can't instantiate the WebAssembly module: {}", err))?;
 
+    // end compilation time
+    let compile_duration = start_compile.elapsed();
+    println!("compile time: {:?}", compile_duration);
+
     webassembly::start_instance(
         &module,
         &mut instance,
         options.path.to_str().unwrap(),
         options.args.iter().map(|arg| arg.as_str()).collect(),
     )
+
 }
 
 fn run(options: Run) {
+    let start_run = Instant::now();
+
     match execute_wasm(&options) {
-        Ok(()) => {}
+        Ok(()) => {
+            let run_duration = start_run.elapsed();
+            println!("total run time (compile + execute): {:?}", run_duration);
+        }
         Err(message) => {
             // let name = options.path.as_os_str().to_string_lossy();
             println!("{}", message);
