@@ -5,6 +5,7 @@ use std::io;
 use std::io::Read;
 use std::path::PathBuf;
 use std::process::exit;
+use std::time::{Duration, Instant};
 
 use structopt::StructOpt;
 
@@ -66,6 +67,9 @@ fn execute_wasm(options: &Run) -> Result<(), String> {
             .map_err(|e| format!("Can't convert from wast to wasm: {:?}", e))?;
     }
 
+    // start compilation time
+    let start_compile = Instant::now();
+
     let module = webassembly::compile(&wasm_binary[..])
         .map_err(|e| format!("Can't compile module: {:?}", e))?;
 
@@ -88,6 +92,12 @@ fn execute_wasm(options: &Run) -> Result<(), String> {
         .instantiate(&import_object)
         .map_err(|e| format!("Can't instantiate module: {:?}", e))?;
 
+    // end compilation time
+    let compile_duration = start_compile.elapsed();
+    println!("compile time: {:?}", compile_duration);
+
+    let start_run = Instant::now();
+
     webassembly::run_instance(
         &module,
         &mut instance,
@@ -95,6 +105,9 @@ fn execute_wasm(options: &Run) -> Result<(), String> {
         options.args.iter().map(|arg| arg.as_str()).collect(),
     )
     .map_err(|e| format!("{:?}", e))?;
+
+    let run_duration = start_run.elapsed();
+    println!("run time: {:?}", run_duration);
 
     Ok(())
 }
